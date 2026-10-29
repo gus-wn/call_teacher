@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>선생님 호출</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=202610291604">
 <style>
   .hint { text-align: center; margin: 4px 0 18px; font-size: 18px; color: var(--muted); }
   .door { text-align: center; margin-top: 10px; font-size: 13px; color: var(--muted); }
@@ -57,8 +57,16 @@
   </div>
 </div>
 
-<script src="config.js"></script>
-<script src="common.js"></script>
+<script>
+// 오류가 나면 화면에 표시 (원인 파악용)
+window.addEventListener("error", e => {
+  const box = document.getElementById("room");
+  if (box) box.insertAdjacentHTML("beforebegin",
+    `<p style="color:#b8566b;text-align:center">화면을 그리는 중 오류가 났어요. 새로고침(Ctrl+F5) 해 보세요.<br><small>${String(e.message).replace(/</g,"&lt;")}</small></p>`);
+});
+</script>
+<script src="config.js?v=202610291604"></script>
+<script src="common.js?v=202610291604"></script>
 <script>
 const SC = window.StaffCall;
 const cfg = SC.loadConfig();

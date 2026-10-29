@@ -12,7 +12,12 @@
     let cfg = JSON.parse(JSON.stringify(window.DEFAULT_CONFIG));
     const saved = safeGet(STORE_KEY);
     if (saved) {
-      try { Object.assign(cfg, JSON.parse(saved)); } catch (e) {}
+      try {
+        const s = JSON.parse(saved);
+        // 저장된 배치표가 비어 있거나 망가졌으면 config.js 배치표를 사용
+        if (!Array.isArray(s.layout) || !s.layout.length || !s.layout.every(Array.isArray)) delete s.layout;
+        Object.assign(cfg, s);
+      } catch (e) {}
     }
     const ch = new URLSearchParams(location.search).get("ch");
     if (ch) cfg.channel = ch;
