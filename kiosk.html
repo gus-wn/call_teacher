@@ -71,17 +71,20 @@ document.title = (cfg.roomName || "교무실") + " · 선생님 호출";
 // 배치표 그리기
 const room = document.getElementById("room");
 const cols = Math.max(...cfg.layout.map(r => r.length));
-room.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+// 세로줄 전체가 비어 있으면 '통로'로 보고 좁게 그림
+const aisle = [];
+for (let i = 0; i < cols; i++) aisle[i] = cfg.layout.every(r => SC.parseSeat(r[i]).kind === "empty");
+room.style.gridTemplateColumns = aisle.map(a => a ? "28px" : "1fr").join(" ");
 cfg.layout.forEach(row => {
   for (let i = 0; i < cols; i++) {
-    const v = (row[i] || "").trim();
+    const s = SC.parseSeat(row[i]);
     const d = document.createElement("div");
-    if (!v) d.className = "seat empty";
-    else if (v.startsWith("#")) { d.className = "seat label"; d.textContent = v.slice(1); }
+    if (s.kind === "empty") d.className = aisle[i] ? "seat aisle" : "seat empty";
+    else if (s.kind === "label") { d.className = "seat label"; d.textContent = s.text; }
     else {
       d.className = "seat teacher";
-      d.innerHTML = `<span><span class="t">${SC.esc(v)}</span><span class="s">선생님</span></span>`;
-      d.onclick = () => openAsk(v);
+      d.innerHTML = `<span>${s.role ? `<span class="r">[${SC.esc(s.role)}]</span>` : ""}<span class="t">${SC.esc(s.name)}</span><span class="s">선생님</span></span>`;
+      d.onclick = () => openAsk(s.name);
     }
     room.appendChild(d);
   }

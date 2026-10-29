@@ -83,5 +83,18 @@
     return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  window.StaffCall = { loadConfig, saveConfig, resetConfig, send, listen, unlockAudio, chime, speak, esc };
+  // 칸 내용 해석: "" 빈자리 / "#문" 표지 / "이름|업무" 선생님
+  function parseSeat(raw) {
+    const v = String(raw || "").trim();
+    if (!v) return { kind: "empty" };
+    if (v.startsWith("#")) return { kind: "label", text: v.slice(1) };
+    const i = v.indexOf("|");
+    return i < 0 ? { kind: "teacher", name: v, role: "" }
+                 : { kind: "teacher", name: v.slice(0, i).trim(), role: v.slice(i + 1).trim() };
+  }
+  function teacherNames(cfg) {
+    return [...new Set(cfg.layout.flat().map(parseSeat).filter(s => s.kind === "teacher").map(s => s.name))];
+  }
+
+  window.StaffCall = { parseSeat, teacherNames, loadConfig, saveConfig, resetConfig, send, listen, unlockAudio, chime, speak, esc };
 })();

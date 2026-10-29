@@ -70,7 +70,7 @@ const calls = []; // {id, teacher, student, purpose, time, done, el}
 document.getElementById("roomName").textContent = cfg.roomName || "교무실";
 
 // 선생님 목록 → 필터
-const teachers = [...new Set(cfg.layout.flat().map(s => (s || "").trim()).filter(s => s && !s.startsWith("#")))];
+const teachers = SC.teacherNames(cfg);
 const filterSel = document.getElementById("filter");
 teachers.forEach(t => filterSel.add(new Option(t + " 선생님", t)));
 try { filterSel.value = localStorage.getItem(FILTER_KEY) || ""; } catch (e) {}

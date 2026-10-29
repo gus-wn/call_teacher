@@ -85,7 +85,11 @@ header.top .sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
 .seat.teacher:hover { border-color: var(--sky-ink); }
 .seat.teacher .t { font-weight: 600; }
 .seat.teacher .s { display: block; font-size: 12px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+.seat.teacher { min-height: 104px; }
+.seat.teacher .t { display: block; font-size: 30px; letter-spacing: 1px; }
+.seat.teacher .r { display: block; font-size: 13px; color: var(--sky-ink); margin-bottom: 4px; word-break: keep-all; }
 .seat.empty { border: 1px dashed var(--grid); }
+.seat.aisle { min-height: 0; border: none; border-left: 1px dashed var(--line); margin-left: 13px; padding: 0; }
 .seat.label {
   font-size: 13px; color: var(--muted);
   background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(217, 212, 199, .35) 6px 7px);
@@ -128,5 +132,9 @@ header.top .sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
   header.top { padding: 14px 16px; }
   header.top h1 { font-size: 21px; }
   .seat { min-height: 60px; font-size: 15px; }
+  .seat.teacher { min-height: 78px; }
+  .seat.teacher .t { font-size: 19px; letter-spacing: 0; }
+  .seat.teacher .r { font-size: 10px; }
+  .seat.aisle { margin-left: 6px; }
   .room { gap: 6px; padding: 10px; }
 }
