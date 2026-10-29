@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>선생님 호출</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .hint { text-align: center; margin: 4px 0 18px; font-size: 18px; color: var(--muted); }
+  .door { text-align: center; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  #clock { font-size: 22px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1 class="serif" id="roomName">교무실</h1>
+    <div class="sub">찾아온 선생님의 자리를 눌러 주세요</div>
+  </div>
+  <div id="clock"></div>
+</header>
+
+<div class="wrap">
+  <p class="hint">👆 선생님 이름을 누르면 교무실 안에 알림이 울려요</p>
+  <div class="room" id="room"></div>
+</div>
+
+<!-- 이름 입력 -->
+<div class="backdrop" id="askBox">
+  <div class="modal">
+    <h2 class="serif"><span id="askTeacher"></span> 선생님</h2>
+    <p>누가 찾아왔는지 알려 주세요.</p>
+    <div class="field">
+      <label for="stuName">학번과 이름</label>
+      <input id="stuName" maxlength="20" placeholder="예: 10203 홍길동" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>용건 (선택)</label>
+      <div class="chips" id="purposes"></div>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="cancelBtn">취소</button>
+      <button class="btn primary" id="sendBtn">호출하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 결과 -->
+<div class="backdrop" id="doneBox">
+  <div class="modal big-msg">
+    <div class="icon" id="doneIcon">🔔</div>
+    <h2 class="serif" id="doneTitle">알림을 보냈어요</h2>
+    <p id="doneText">잠시만 기다려 주세요.</p>
+    <div class="row" style="justify-content:center">
+      <button class="btn" id="doneBtn">처음으로</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const SC = window.StaffCall;
+const cfg = SC.loadConfig();
+const PURPOSES = cfg.purposes || ["과제 제출", "질문", "상담", "심부름", "기타"];
+let current = null, purpose = "", pendingId = null, resetTimer = null;
+
+document.getElementById("roomName").textContent = cfg.roomName || "교무실";
+document.title = (cfg.roomName || "교무실") + " · 선생님 호출";
+
+// 배치표 그리기
+const room = document.getElementById("room");
+const cols = Math.max(...cfg.layout.map(r => r.length));
+room.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+cfg.layout.forEach(row => {
+  for (let i = 0; i < cols; i++) {
+    const v = (row[i] || "").trim();
+    const d = document.createElement("div");
+    if (!v) d.className = "seat empty";
+    else if (v.startsWith("#")) { d.className = "seat label"; d.textContent = v.slice(1); }
+    else {
+      d.className = "seat teacher";
+      d.innerHTML = `<span><span class="t">${SC.esc(v)}</span><span class="s">선생님</span></span>`;
+      d.onclick = () => openAsk(v);
+    }
+    room.appendChild(d);
+  }
+});
+
+// 용건 칩
+const pBox = document.getElementById("purposes");
+PURPOSES.forEach(p => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = p;
+  b.onclick = () => {
+    purpose = purpose === p ? "" : p;
+    [...pBox.children].forEach(c => c.classList.toggle("on", c.textContent === purpose));
+  };
+  pBox.appendChild(b);
+});
+
+const askBox = document.getElementById("askBox"), doneBox = document.getElementById("doneBox");
+const nameInput = document.getElementById("stuName");
+
+function openAsk(t) {
+  current = t; purpose = "";
+  [...pBox.children].forEach(c => c.classList.remove("on"));
+  document.getElementById("askTeacher").textContent = t;
+  nameInput.value = "";
+  askBox.classList.add("show");
+  setTimeout(() => nameInput.focus(), 50);
+}
+function closeAll() {
+  askBox.classList.remove("show"); doneBox.classList.remove("show");
+  pendingId = null; clearTimeout(resetTimer);
+}
+document.getElementById("cancelBtn").onclick = closeAll;
+document.getElementById("doneBtn").onclick = closeAll;
+nameInput.addEventListener("keydown", e => { if (e.key === "Enter") doSend(); });
+document.getElementById("sendBtn").onclick = doSend;
+
+async function doSend() {
+  const student = nameInput.value.trim();
+  if (!student) { nameInput.focus(); nameInput.placeholder = "이름을 꼭 입력해 주세요"; return; }
+  const btn = document.getElementById("sendBtn");
+  btn.disabled = true;
+  pendingId = Math.random().toString(36).slice(2, 10);
+  try {
+    await SC.send(cfg, { type: "call", id: pendingId, teacher: current, student, purpose });
+    askBox.classList.remove("show");
+    showDone("🔔", "알림을 보냈어요", `${current} 선생님께 알렸어요. 문 앞에서 잠시만 기다려 주세요.`);
+  } catch (e) {
+    showDone("⚠️", "알림을 보내지 못했어요", "인터넷 연결을 확인하거나 교무실 문을 직접 두드려 주세요.");
+    pendingId = null;
+  } finally { btn.disabled = false; }
+}
+function showDone(icon, title, text) {
+  document.getElementById("doneIcon").textContent = icon;
+  document.getElementById("doneTitle").textContent = title;
+  document.getElementById("doneText").textContent = text;
+  doneBox.classList.add("show");
+  clearTimeout(resetTimer);
+  resetTimer = setTimeout(closeAll, 20000); // 20초 뒤 처음 화면으로
+}
+
+// 선생님이 '확인'을 누르면 화면에 표시
+SC.listen(cfg, msg => {
+  if (msg.type === "ack" && msg.id && msg.id === pendingId) {
+    const txt = msg.reply === "wait" ? "선생님이 확인하셨어요. 조금만 더 기다려 주세요!"
+              : msg.reply === "later" ? "지금은 만나기 어려우세요. 다음에 다시 와 주세요."
+              : "선생님이 확인하셨어요. 곧 나오실 거예요!";
+    showDone(msg.reply === "later" ? "🙏" : "✅", "선생님이 확인했어요", txt);
+  }
+});
+
+// 시계
+function tick() {
+  const d = new Date();
+  document.getElementById("clock").textContent =
+    d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+}
+tick(); setInterval(tick, 10000);
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>배치표 설정</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+  .panel h2 { margin: 0 0 4px; font-weight: 400; font-size: 21px; }
+  .panel .desc { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field input { font-size: 16px; }
+  .editor { display: grid; gap: 6px; overflow-x: auto; }
+  .editor input {
+    width: 100%; min-width: 80px; font: inherit; font-size: 15px; text-align: center;
+    padding: 10px 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper);
+  }
+  .editor input.lbl { background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(217,212,199,.35) 6px 7px); color: var(--muted); }
+  .editor input.tch { background: var(--sky); border-color: var(--sky-ink); }
+  .sizer { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; font-size: 14px; color: var(--muted); }
+  .sizer input { width: 64px; font: inherit; padding: 6px; border: 1px solid var(--line); border-radius: 8px; }
+  textarea { width: 100%; height: 220px; font-family: ui-monospace, monospace; font-size: 13px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--paper); }
+  .links a { display: block; word-break: break-all; color: var(--sky-ink); margin: 4px 0; }
+  .saved { color: var(--mint-ink); font-size: 14px; margin-left: 8px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1 class="serif">배치표 설정</h1>
+    <div class="sub">교무실 자리와 연결 코드를 정해요</div>
+  </div>
+  <a class="btn ghost" href="index.html">← 처음으로</a>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <h2 class="serif">기본 정보</h2>
+    <p class="desc">키오스크 태블릿과 교무실 수신 화면은 <b>같은 연결 코드</b>를 써야 서로 연결돼요.</p>
+    <div class="grid2">
+      <div class="field"><label>교무실 이름</label><input id="roomName"></div>
+      <div class="field"><label>연결 코드 (영문·숫자)</label>
+        <div style="display:flex;gap:8px"><input id="channel"><button class="btn" id="genBtn">새로 만들기</button></div>
+      </div>
+    </div>
+    <div class="field"><label>용건 버튼 (쉼표로 구분)</label><input id="purposes"></div>
+  </div>
+
+  <div class="panel">
+    <h2 class="serif">자리 배치</h2>
+    <p class="desc">칸마다 선생님 이름을 적어요. 비워 두면 빈자리, <b>#</b>을 앞에 붙이면 표지(예: #출입문, #복합기)가 돼요.</p>
+    <div class="sizer">
+      줄 <input type="number" id="rows" min="1" max="15">
+      칸 <input type="number" id="cols" min="1" max="12">
+      <button class="btn" id="resizeBtn">크기 바꾸기</button>
+    </div>
+    <div class="editor" id="editor"></div>
+  </div>
+
+  <div class="panel">
+    <h2 class="serif">저장하기</h2>
+    <p class="desc">
+      <b>방법 1</b> 이 기기에만 저장 — 키오스크 태블릿에서 직접 이 페이지를 열어 저장하면 가장 간단해요.<br>
+      <b>방법 2</b> 모든 기기에 적용 — 아래 내용을 복사해 GitHub 저장소의 <code>config.js</code>에 붙여넣으면 모든 기기에 반영돼요.
+    </p>
+    <button class="btn primary" id="saveBtn">이 기기에 저장</button>
+    <button class="btn" id="resetBtn">저장한 설정 지우기 (config.js 사용)</button>
+    <span class="saved" id="savedMsg"></span>
+    <div style="margin-top:16px">
+      <button class="btn" id="copyBtn">config.js 내용 복사</button>
+      <textarea id="out" readonly style="margin-top:10px"></textarea>
+    </div>
+  </div>
+
+  <div class="panel links">
+    <h2 class="serif">바로가기 주소</h2>
+    <p class="desc">연결 코드가 들어간 주소예요. 즐겨찾기에 넣어 두면 기기마다 따로 설정하지 않아도 돼요.</p>
+    <div id="links"></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const SC = window.StaffCall;
+let cfg = SC.loadConfig();
+const $ = id => document.getElementById(id);
+
+function fillForm() {
+  $("roomName").value = cfg.roomName || "";
+  $("channel").value = cfg.channel || "";
+  $("purposes").value = (cfg.purposes || ["과제 제출", "질문", "상담", "심부름", "기타"]).join(", ");
+  $("rows").value = cfg.layout.length;
+  $("cols").value = Math.max(...cfg.layout.map(r => r.length));
+  drawEditor();
+}
+
+function drawEditor() {
+  const ed = $("editor");
+  const cols = Math.max(...cfg.layout.map(r => r.length));
+  ed.style.gridTemplateColumns = `repeat(${cols}, minmax(80px, 1fr))`;
+  ed.innerHTML = "";
+  cfg.layout.forEach((row, r) => {
+    for (let c = 0; c < cols; c++) {
+      const inp = document.createElement("input");
+      inp.value = row[c] || "";
+      inp.dataset.r = r; inp.dataset.c = c;
+      const tint = () => inp.className = inp.value.startsWith("#") ? "lbl" : inp.value.trim() ? "tch" : "";
+      tint();
+      inp.oninput = () => { cfg.layout[r][c] = inp.value; tint(); update(); };
+      ed.appendChild(inp);
+    }
+  });
+}
+
+function readForm() {
+  cfg.roomName = $("roomName").value.trim() || "교무실";
+  cfg.channel = $("channel").value.trim().replace(/[^a-zA-Z0-9_-]/g, "");
+  cfg.purposes = $("purposes").value.split(",").map(s => s.trim()).filter(Boolean);
+}
+
+function update() {
+  readForm();
+  const out = { roomName: cfg.roomName, channel: cfg.channel, purposes: cfg.purposes, layout: cfg.layout };
+  $("out").value = "window.DEFAULT_CONFIG = " + JSON.stringify(out, null, 2) + ";\n";
+  const base = location.href.replace(/setup\.html.*$/, "");
+  const ch = encodeURIComponent(cfg.channel);
+  $("links").innerHTML =
+    `학생용(문 앞 태블릿)<a href="${base}kiosk.html?ch=${ch}">${base}kiosk.html?ch=${ch}</a>` +
+    `교무실 수신 화면<a href="${base}receiver.html?ch=${ch}">${base}receiver.html?ch=${ch}</a>`;
+}
+
+["roomName", "channel", "purposes"].forEach(id => $(id).oninput = update);
+$("genBtn").onclick = () => {
+  $("channel").value = "room-" + Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8);
+  update();
+};
+$("resizeBtn").onclick = () => {
+  const R = Math.min(15, Math.max(1, +$("rows").value || 1));
+  const C = Math.min(12, Math.max(1, +$("cols").value || 1));
+  const nl = [];
+  for (let r = 0; r < R; r++) { nl.push([]); for (let c = 0; c < C; c++) nl[r].push((cfg.layout[r] || [])[c] || ""); }
+  cfg.layout = nl; drawEditor(); update();
+};
+$("saveBtn").onclick = () => {
+  readForm(); SC.saveConfig({ roomName: cfg.roomName, channel: cfg.channel, purposes: cfg.purposes, layout: cfg.layout });
+  $("savedMsg").textContent = "✓ 이 기기에 저장했어요";
+  setTimeout(() => $("savedMsg").textContent = "", 2500);
+};
+$("resetBtn").onclick = () => {
+  SC.resetConfig(); cfg = SC.loadConfig(); fillForm(); update();
+  $("savedMsg").textContent = "✓ config.js 설정으로 돌아갔어요";
+};
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText($("out").value); $("copyBtn").textContent = "✓ 복사했어요"; }
+  catch (e) { $("out").select(); document.execCommand("copy"); $("copyBtn").textContent = "✓ 복사했어요"; }
+  setTimeout(() => $("copyBtn").textContent = "config.js 내용 복사", 2000);
+};
+
+fillForm(); update();
+</script>
+</body>
+</html>

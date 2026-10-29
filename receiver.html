@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>교무실 알림 수신</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+  .bar select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .bar label { font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .list { display: grid; gap: 12px; }
+  .call {
+    background: var(--card); border: 1px solid var(--line); border-left: 6px solid var(--pink-ink);
+    border-radius: 14px; padding: 16px 18px;
+    display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+    animation: pop .35s ease;
+  }
+  .call.done { border-left-color: var(--mint-ink); opacity: .55; }
+  .call .who { font-size: 24px; }
+  .call .who b { color: var(--pink-ink); font-weight: 600; }
+  .call.done .who b { color: var(--mint-ink); }
+  .call .meta { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .call .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .empty-note { text-align: center; color: var(--muted); padding: 60px 0; border: 1px dashed var(--line); border-radius: 14px; }
+  @keyframes pop { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .flash { animation: flash 1s ease 3; }
+  @keyframes flash { 50% { background: var(--pink); } }
+  #startBox .modal { text-align: center; }
+  @media (max-width: 640px) { .call { grid-template-columns: 1fr; } .call .acts { justify-content: flex-start; } }
+</style>
+</head>
+<body>
+<header class="top" id="hdr">
+  <div>
+    <h1 class="serif"><span id="roomName">교무실</span> 알림판</h1>
+    <div class="sub">학생이 문 앞 태블릿에서 호출하면 여기에서 울려요</div>
+  </div>
+  <span class="tag" id="status">연결 중…</span>
+</header>
+
+<div class="wrap">
+  <div class="bar">
+    <label>보여줄 선생님
+      <select id="filter"><option value="">전체 (교무실 공용 PC)</option></select>
+    </label>
+    <label><input type="checkbox" id="voiceOn" checked> 이름 읽어주기</label>
+    <button class="btn ghost" id="testBtn">🔊 소리 테스트</button>
+    <button class="btn ghost" id="clearBtn">확인한 알림 지우기</button>
+  </div>
+  <div class="list" id="list"><div class="empty-note">아직 찾아온 학생이 없어요.</div></div>
+</div>
+
+<div class="backdrop show" id="startBox">
+  <div class="modal">
+    <h2 class="serif">알림 받기 시작</h2>
+    <p>브라우저 정책상 소리를 내려면 한 번 눌러 주셔야 해요.<br>이 창은 켜 둔 채로 두세요.</p>
+    <button class="btn primary" id="startBtn" style="font-size:18px;padding:14px 28px">시작하기</button>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const SC = window.StaffCall;
+const cfg = SC.loadConfig();
+const FILTER_KEY = "staffroom_call_filter", VOICE_KEY = "staffroom_call_voice";
+const calls = []; // {id, teacher, student, purpose, time, done, el}
+
+document.getElementById("roomName").textContent = cfg.roomName || "교무실";
+
+// 선생님 목록 → 필터
+const teachers = [...new Set(cfg.layout.flat().map(s => (s || "").trim()).filter(s => s && !s.startsWith("#")))];
+const filterSel = document.getElementById("filter");
+teachers.forEach(t => filterSel.add(new Option(t + " 선생님", t)));
+try { filterSel.value = localStorage.getItem(FILTER_KEY) || ""; } catch (e) {}
+filterSel.onchange = () => { try { localStorage.setItem(FILTER_KEY, filterSel.value); } catch (e) {} render(); };
+const voiceOn = document.getElementById("voiceOn");
+try { voiceOn.checked = localStorage.getItem(VOICE_KEY) !== "off"; } catch (e) {}
+voiceOn.onchange = () => { try { localStorage.setItem(VOICE_KEY, voiceOn.checked ? "on" : "off"); } catch (e) {} };
+
+function announce(c, again) {
+  SC.chime();
+  if (voiceOn.checked) {
+    const p = c.purpose ? `, ${c.purpose} 때문에` : "";
+    setTimeout(() => SC.speak(`${again ? "다시 알려드립니다. " : ""}${c.teacher} 선생님, ${c.student} 학생이${p} 찾아왔습니다.`), 900);
+  }
+}
+
+function visible(c) { return !filterSel.value || filterSel.value === c.teacher; }
+
+function render() {
+  const list = document.getElementById("list");
+  const shown = calls.filter(visible);
+  if (!shown.length) { list.innerHTML = '<div class="empty-note">아직 찾아온 학생이 없어요.</div>'; return; }
+  list.innerHTML = "";
+  shown.forEach(c => list.appendChild(card(c)));
+}
+
+function card(c) {
+  const el = document.createElement("div");
+  el.className = "call" + (c.done ? " done" : "");
+  const t = new Date(c.time).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+  el.innerHTML = `
+    <div>
+      <div class="who serif"><b>${SC.esc(c.teacher)}</b> 선생님 · ${SC.esc(c.student)} 학생</div>
+      <div class="meta">${t}${c.purpose ? " · " + SC.esc(c.purpose) : ""}${c.done ? " · " + SC.esc(c.doneText) : ""}</div>
+    </div>
+    <div class="acts">${c.done ? "" : `
+      <button class="btn primary" data-r="coming">곧 나갈게요</button>
+      <button class="btn" data-r="wait">잠시만</button>
+      <button class="btn ghost" data-r="later">다음에</button>`}
+    </div>`;
+  el.querySelectorAll("button[data-r]").forEach(b => b.onclick = () => reply(c, b.dataset.r));
+  return el;
+}
+
+const REPLY_TEXT = { coming: "곧 나간다고 답함", wait: "잠시만 기다리라고 답함", later: "다음에 오라고 답함" };
+async function reply(c, r) {
+  markDone(c.id, r);
+  try { await SC.send(cfg, { type: "ack", id: c.id, reply: r }); } catch (e) {}
+}
+function markDone(id, r) {
+  const c = calls.find(x => x.id === id);
+  if (!c || c.done) return;
+  c.done = true; c.doneText = REPLY_TEXT[r] || "확인함";
+  clearTimeout(c.timer);
+  render();
+}
+
+function onMessage(m) {
+  if (m.type === "call") {
+    const c = { id: m.id, teacher: m.teacher, student: m.student, purpose: m.purpose, time: m._time || Date.now(), done: false };
+    calls.unshift(c);
+    if (calls.length > 50) calls.pop();
+    render();
+    if (visible(c)) {
+      announce(c);
+      document.getElementById("hdr").classList.add("flash");
+      setTimeout(() => document.getElementById("hdr").classList.remove("flash"), 3200);
+      // 40초 동안 아무도 확인하지 않으면 한 번 더 알림
+      c.timer = setTimeout(() => { if (!c.done && visible(c)) announce(c, true); }, 40000);
+    }
+  } else if (m.type === "ack") {
+    markDone(m.id, m.reply); // 다른 기기에서 확인한 경우도 반영
+  }
+}
+
+function setStatus(s) {
+  const el = document.getElementById("status");
+  el.className = "tag " + (s === "open" ? "ok" : "bad");
+  el.textContent = s === "open" ? "● 연결됨" : "연결 끊김 · 재연결 중";
+}
+
+document.getElementById("startBtn").onclick = () => {
+  SC.unlockAudio();
+  if ("speechSynthesis" in window) speechSynthesis.getVoices();
+  document.getElementById("startBox").classList.remove("show");
+  SC.listen(cfg, onMessage, setStatus);
+};
+document.getElementById("testBtn").onclick = () => {
+  SC.unlockAudio();
+  announce({ teacher: filterSel.value || "담임", student: "홍길동", purpose: "" });
+};
+document.getElementById("clearBtn").onclick = () => {
+  for (let i = calls.length - 1; i >= 0; i--) if (calls[i].done) calls.splice(i, 1);
+  render();
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>교무실 호출 시스템</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .hero { text-align: center; padding: 40px 0 26px; }
+  .hero h1 { font-size: 38px; font-weight: 400; margin: 0 0 8px; }
+  .hero p { color: var(--muted); margin: 0; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px;
+    transition: transform .1s, border-color .15s;
+  }
+  .card:hover { transform: translateY(-2px); border-color: var(--sky-ink); }
+  .card .em { font-size: 34px; }
+  .card h2 { font-weight: 400; margin: 10px 0 6px; font-size: 22px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .card.k { border-top: 5px solid var(--sky-ink); }
+  .card.r { border-top: 5px solid var(--pink-ink); }
+  .card.s { border-top: 5px solid var(--mint-ink); }
+  .how { margin-top: 28px; background: rgba(255,255,255,.7); border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; font-size: 15px; line-height: 1.8; }
+  .how h3 { margin: 0 0 6px; font-weight: 400; }
+  @media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1 class="serif">교무실 호출 시스템</h1>
+    <p>문 앞 태블릿에서 선생님을 누르면, 교무실 안에서 띵동 하고 알려 드려요.</p>
+  </div>
+  <div class="cards">
+    <a class="card k" href="kiosk.html"><div class="em">🧑‍🎓</div><h2 class="serif">학생용 호출 화면</h2><p>교무실 문 앞 태블릿에 띄워 두는 화면이에요. 배치표에서 선생님 이름을 눌러 호출해요.</p></a>
+    <a class="card r" href="receiver.html"><div class="em">🔔</div><h2 class="serif">교무실 수신 화면</h2><p>교무실 PC나 태블릿에 켜 두면 소리와 음성으로 알려 줘요. 학생에게 답장도 보낼 수 있어요.</p></a>
+    <a class="card s" href="setup.html"><div class="em">🗺️</div><h2 class="serif">배치표 설정</h2><p>교무실 자리 배치와 선생님 이름, 연결 코드를 정해요.</p></a>
+  </div>
+  <div class="how">
+    <h3 class="serif">처음 쓰실 때</h3>
+    1. <b>배치표 설정</b>에서 자리를 채우고 연결 코드를 새로 만들어요.<br>
+    2. 나온 <b>바로가기 주소</b>를 문 앞 태블릿과 교무실 PC에서 각각 열어요.<br>
+    3. 교무실 PC에서 <b>시작하기</b>를 한 번 누르면 준비 끝!
+  </div>
+</div>
+</body>
+</html>
