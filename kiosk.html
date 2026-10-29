@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>선생님 호출</title>
-<link rel="stylesheet" href="style.css?v=202610291616">
+<link rel="stylesheet" href="style.css?v=202610291622">
 <style>
   .hint { text-align: center; margin: 4px 0 18px; font-size: 18px; color: var(--muted); }
   .door { text-align: center; margin-top: 10px; font-size: 13px; color: var(--muted); }
@@ -37,6 +37,8 @@
     <div class="field">
       <label>용건 (선택)</label>
       <div class="chips" id="purposes"></div>
+      <input id="purposeText" maxlength="30" placeholder="✏️ 직접 쓰기 (예: 수행평가 재응시 문의)" autocomplete="off" style="margin-top:10px;font-size:17px">
+      <div style="text-align:right;font-size:12px;color:var(--muted);margin-top:4px"><span id="purposeCount">0</span>/30</div>
     </div>
     <div class="row">
       <button class="btn ghost" id="cancelBtn">취소</button>
@@ -66,7 +68,7 @@ window.addEventListener("error", e => {
 });
 </script>
 <script>document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');</script>
-<script src="common.js?v=202610291616"></script>
+<script src="common.js?v=202610291622"></script>
 <script>
 const SC = window.StaffCall;
 // common.js가 예전 버전이어도 동작하도록 자리 해석 기능을 여기에도 둠
@@ -116,9 +118,18 @@ PURPOSES.forEach(p => {
   b.onclick = () => {
     purpose = purpose === p ? "" : p;
     [...pBox.children].forEach(c => c.classList.toggle("on", c.textContent === purpose));
+    if (purpose) { pText.value = ""; pCount.textContent = "0"; } // 버튼을 고르면 직접 쓴 내용은 지움
   };
   pBox.appendChild(b);
 });
+
+// 용건 직접 쓰기: 쓰기 시작하면 위 버튼 선택은 해제
+const pText = document.getElementById("purposeText"), pCount = document.getElementById("purposeCount");
+pText.addEventListener("input", () => {
+  pCount.textContent = pText.value.length;
+  if (pText.value.trim()) { purpose = ""; [...pBox.children].forEach(c => c.classList.remove("on")); }
+});
+pText.addEventListener("keydown", e => { if (e.key === "Enter") doSend(); });
 
 const askBox = document.getElementById("askBox"), doneBox = document.getElementById("doneBox");
 const nameInput = document.getElementById("stuName");
@@ -126,6 +137,7 @@ const nameInput = document.getElementById("stuName");
 function openAsk(t) {
   current = t; purpose = "";
   [...pBox.children].forEach(c => c.classList.remove("on"));
+  pText.value = ""; pCount.textContent = "0";
   document.getElementById("askTeacher").textContent = t;
   nameInput.value = "";
   askBox.classList.add("show");
@@ -147,7 +159,8 @@ async function doSend() {
   btn.disabled = true;
   pendingId = Math.random().toString(36).slice(2, 10);
   try {
-    await SC.send(cfg, { type: "call", id: pendingId, teacher: current, student, purpose });
+    const why = pText.value.trim() || purpose;
+    await SC.send(cfg, { type: "call", id: pendingId, teacher: current, student, purpose: why });
     askBox.classList.remove("show");
     showDone("🔔", "알림을 보냈어요", `${current} 선생님께 알렸어요. 문 앞에서 잠시만 기다려 주세요.`);
   } catch (e) {
