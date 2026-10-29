@@ -4,25 +4,40 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>배치표 설정</title>
-<link rel="stylesheet" href="style.css?v=202610291608">
+<link rel="stylesheet" href="style.css?v=202610291609">
 <style>
   .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
   .panel h2 { margin: 0 0 4px; font-weight: 400; font-size: 21px; }
-  .panel .desc { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  .panel .desc { color: var(--muted); font-size: 14px; margin: 0 0 14px; line-height: 1.7; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .field input { font-size: 16px; }
-  .editor { display: grid; gap: 6px; overflow-x: auto; }
-  .editor input {
-    width: 100%; min-width: 120px; font: inherit; font-size: 14px; text-align: center;
-    padding: 10px 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper);
+  .editor { display: grid; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .cell {
+    border: 1px solid var(--line); border-radius: 10px; padding: 6px; background: var(--paper);
+    display: flex; flex-direction: column; gap: 4px; min-width: 130px;
   }
-  .editor input.lbl { background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(217,212,199,.35) 6px 7px); color: var(--muted); }
-  .editor input.tch { background: var(--sky); border-color: var(--sky-ink); }
+  .cell.tch { background: var(--sky); border-color: var(--sky-ink); }
+  .cell.lbl { background: repeating-linear-gradient(45deg, var(--paper) 0 6px, rgba(217,212,199,.45) 6px 7px); }
+  .cell input {
+    width: 100%; font: inherit; text-align: center; border: 1px solid transparent; border-radius: 6px;
+    background: rgba(255,255,255,.75); padding: 6px 4px;
+  }
+  .cell input:focus { outline: none; border-color: var(--sky-ink); background: #fff; }
+  .cell .nm { font-size: 16px; font-weight: 600; }
+  .cell .rl { font-size: 12px; color: var(--sky-ink); }
+  .cell.lbl .rl, .cell.empty .rl { visibility: hidden; }
   .sizer { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; font-size: 14px; color: var(--muted); }
   .sizer input { width: 64px; font: inherit; padding: 6px; border: 1px solid var(--line); border-radius: 8px; }
-  textarea { width: 100%; height: 220px; font-family: ui-monospace, monospace; font-size: 13px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--paper); }
+  textarea { width: 100%; height: 260px; font-family: ui-monospace, monospace; font-size: 13px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--paper); }
   .links a { display: block; word-break: break-all; color: var(--sky-ink); margin: 4px 0; }
-  .saved { color: var(--mint-ink); font-size: 14px; margin-left: 8px; }
+  .msg { font-size: 14px; margin-left: 8px; }
+  .msg.ok { color: var(--mint-ink); }
+  .msg.bad { color: var(--pink-ink); }
+  .gh { border-top: 5px solid var(--mint-ink); }
+  .gh ol { margin: 6px 0 14px; padding-left: 20px; font-size: 14px; color: var(--muted); line-height: 1.8; }
+  .gh a { color: var(--sky-ink); }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; margin-top: 4px; }
   @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -38,7 +53,7 @@
 <div class="wrap">
   <div class="panel">
     <h2 class="serif">기본 정보</h2>
-    <p class="desc">키오스크 태블릿과 교무실 수신 화면은 <b>같은 연결 코드</b>를 써야 서로 연결돼요.</p>
+    <p class="desc">학생용 화면과 교무실 수신 화면은 <b>같은 연결 코드</b>를 써야 서로 연결돼요.</p>
     <div class="grid2">
       <div class="field"><label>교무실 이름</label><input id="roomName"></div>
       <div class="field"><label>연결 코드 (영문·숫자)</label>
@@ -50,7 +65,8 @@
 
   <div class="panel">
     <h2 class="serif">자리 배치</h2>
-    <p class="desc">칸마다 선생님 이름을 적어요. 담당 업무도 보여 주려면 <b>이름|업무</b> (예: 박경훈|2-9/체험학습/세계사)로 적어요. 비워 두면 빈자리, 세로줄 전체를 비우면 통로, <b>#</b>을 앞에 붙이면 표지(예: #출입문)가 돼요.</p>
+    <p class="desc">칸마다 <b>위 칸에 이름</b>, <b>아래 칸에 담당 업무</b>를 적어요.
+      이름을 비우면 빈자리, 세로줄 전체를 비우면 통로가 돼요. 이름 앞에 <b>#</b>을 붙이면 표지(예: #출입문)가 돼요.</p>
     <div class="sizer">
       줄 <input type="number" id="rows" min="1" max="15">
       칸 <input type="number" id="cols" min="1" max="12">
@@ -59,58 +75,119 @@
     <div class="editor" id="editor"></div>
   </div>
 
-  <div class="panel">
-    <h2 class="serif">저장하기</h2>
-    <p class="desc">
-      <b>방법 1</b> 이 기기에만 저장 — 키오스크 태블릿에서 직접 이 페이지를 열어 저장하면 가장 간단해요.<br>
-      <b>방법 2</b> 모든 기기에 적용 — 아래 내용을 복사해 GitHub 저장소의 <code>config.js</code>에 붙여넣으면 모든 기기에 반영돼요.
-    </p>
-    <button class="btn primary" id="saveBtn">이 기기에 저장</button>
-    <button class="btn" id="resetBtn">저장한 설정 지우기 (config.js 사용)</button>
-    <span class="saved" id="savedMsg"></span>
-    <div style="margin-top:16px">
-      <button class="btn" id="copyBtn">config.js 내용 복사</button>
-      <textarea id="out" readonly style="margin-top:10px"></textarea>
+  <div class="panel gh">
+    <h2 class="serif">모든 기기에 저장 (GitHub)</h2>
+    <p class="desc">버튼 한 번으로 GitHub의 <code>config.js</code>를 고쳐 학생용 화면·수신 화면 모두에 반영해요. 저장 후 1~2분 뒤에 적용돼요.</p>
+    <div class="field">
+      <label>GitHub 토큰 <span id="tokenState" class="tag">없음</span></label>
+      <input id="token" type="password" placeholder="처음 한 번만 붙여넣기 (이 기기에만 보관)" autocomplete="off">
     </div>
+    <details>
+      <summary>토큰은 어떻게 만드나요?</summary>
+      <ol>
+        <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub 토큰 만들기 페이지</a>를 열어요.</li>
+        <li>이름은 아무거나, 만료일은 원하는 기간으로 정해요.</li>
+        <li><b>Repository access</b>에서 <b>Only select repositories</b> → <code>call_teacher</code>만 골라요.</li>
+        <li><b>Permissions → Repository permissions → Contents</b>를 <b>Read and write</b>로 바꿔요.</li>
+        <li><b>Generate token</b>을 누르고 나온 값을 위 칸에 붙여넣어요.</li>
+      </ol>
+      <p class="desc">토큰은 이 기기의 브라우저에만 저장돼요. 공용 기기에서는 저장 후 <b>토큰 지우기</b>를 눌러 주세요.</p>
+    </details>
+    <div class="grid2" style="margin-top:10px">
+      <div class="field"><label>GitHub 계정</label><input id="ghOwner"></div>
+      <div class="field"><label>저장소 이름</label><input id="ghRepo"></div>
+    </div>
+    <div class="btns">
+      <button class="btn primary" id="ghSaveBtn">GitHub에 저장</button>
+      <button class="btn ghost" id="tokenClearBtn">토큰 지우기</button>
+      <span class="msg" id="ghMsg"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 class="serif">다른 저장 방법</h2>
+    <p class="desc">
+      <b>이 기기에만 저장</b> — 이 브라우저에서만 바뀐 배치표가 보여요.<br>
+      <b>config.js 직접 고치기</b> — 아래 글상자를 직접 고친 뒤 <b>글상자 내용 적용</b>을 누르면 위 배치표에도 반영돼요.
+    </p>
+    <div class="btns">
+      <button class="btn" id="saveBtn">이 기기에만 저장</button>
+      <button class="btn ghost" id="resetBtn">이 기기 저장 지우기</button>
+      <span class="msg" id="savedMsg"></span>
+    </div>
+    <div style="margin-top:16px" class="btns">
+      <button class="btn" id="applyBtn">글상자 내용 적용</button>
+      <button class="btn" id="copyBtn">config.js 내용 복사</button>
+      <span class="msg" id="applyMsg"></span>
+    </div>
+    <textarea id="out" spellcheck="false" style="margin-top:10px"></textarea>
   </div>
 
   <div class="panel links">
     <h2 class="serif">바로가기 주소</h2>
-    <p class="desc">연결 코드가 들어간 주소예요. 즐겨찾기에 넣어 두면 기기마다 따로 설정하지 않아도 돼요.</p>
+    <p class="desc">연결 코드가 들어간 주소예요. 즐겨찾기에 넣어 두면 편해요.</p>
     <div id="links"></div>
   </div>
 </div>
 
-<script src="config.js?v=202610291608"></script>
-<script src="common.js?v=202610291608"></script>
+<script>document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');</script>
+<script src="common.js?v=202610291609"></script>
 <script>
 const SC = window.StaffCall;
-let cfg = SC.loadConfig();
 const $ = id => document.getElementById(id);
+const TOKEN_KEY = "staffroom_call_gh_token";
+const DEFAULT_PURPOSES = ["과제 제출", "질문", "상담", "심부름", "기타"];
+let cfg = SC.loadConfig();
 
+function store(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
+function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function flash(id, text, ok = true) {
+  const el = $(id); el.className = "msg " + (ok ? "ok" : "bad"); el.textContent = text;
+}
+
+// ---- 칸 값 <-> 이름/업무 ----
+function splitCell(v) {
+  v = String(v || "");
+  const i = v.indexOf("|");
+  return i < 0 ? [v, ""] : [v.slice(0, i), v.slice(i + 1)];
+}
+function joinCell(name, role) {
+  name = name.trim(); role = role.trim();
+  if (!name) return "";
+  if (name.startsWith("#") || !role) return name;
+  return name + "|" + role;
+}
+function colCount() { return Math.max(1, ...cfg.layout.map(r => r.length)); }
+
+// ---- 화면 채우기 ----
 function fillForm() {
   $("roomName").value = cfg.roomName || "";
   $("channel").value = cfg.channel || "";
-  $("purposes").value = (cfg.purposes || ["과제 제출", "질문", "상담", "심부름", "기타"]).join(", ");
+  $("purposes").value = (cfg.purposes || DEFAULT_PURPOSES).join(", ");
   $("rows").value = cfg.layout.length;
-  $("cols").value = Math.max(...cfg.layout.map(r => r.length));
+  $("cols").value = colCount();
   drawEditor();
 }
 
 function drawEditor() {
-  const ed = $("editor");
-  const cols = Math.max(...cfg.layout.map(r => r.length));
-  ed.style.gridTemplateColumns = `repeat(${cols}, minmax(80px, 1fr))`;
+  const ed = $("editor"), cols = colCount();
+  ed.style.gridTemplateColumns = `repeat(${cols}, minmax(130px, 1fr))`;
   ed.innerHTML = "";
   cfg.layout.forEach((row, r) => {
     for (let c = 0; c < cols; c++) {
-      const inp = document.createElement("input");
-      inp.value = row[c] || "";
-      inp.dataset.r = r; inp.dataset.c = c;
-      const tint = () => inp.className = inp.value.startsWith("#") ? "lbl" : inp.value.trim() ? "tch" : "";
+      const [name, role] = splitCell(row[c]);
+      const box = document.createElement("div");
+      box.innerHTML = `<input class="nm" placeholder="이름"><input class="rl" placeholder="담당 업무">`;
+      const nm = box.children[0], rl = box.children[1];
+      nm.value = name; rl.value = role;
+      const tint = () => {
+        const v = nm.value.trim();
+        box.className = "cell " + (!v ? "empty" : v.startsWith("#") ? "lbl" : "tch");
+      };
+      const change = () => { cfg.layout[r][c] = joinCell(nm.value, rl.value); tint(); update(); };
+      nm.oninput = change; rl.oninput = change;
       tint();
-      inp.oninput = () => { cfg.layout[r][c] = inp.value; tint(); update(); };
-      ed.appendChild(inp);
+      ed.appendChild(box);
     }
   });
 }
@@ -121,16 +198,58 @@ function readForm() {
   cfg.purposes = $("purposes").value.split(",").map(s => s.trim()).filter(Boolean);
 }
 
-function update() {
+// ---- config.js 글 만들기 ----
+function buildConfigJs() {
   readForm();
-  const out = { roomName: cfg.roomName, channel: cfg.channel, purposes: cfg.purposes, layout: cfg.layout };
-  $("out").value = "window.DEFAULT_CONFIG = " + JSON.stringify(out, null, 2) + ";\n";
+  const q = s => JSON.stringify(s);
+  const rows = cfg.layout.map(r => "    [" + r.map(q).join(", ") + "]").join(",\n");
+  return `// =============================================
+//  교무실 호출 시스템 기본 설정
+//  - 배치표 설정(setup.html)에서 고치고 [GitHub에 저장]을 누르면 바뀝니다.
+// =============================================
+window.DEFAULT_CONFIG = {
+  // 화면 위에 표시될 교무실 이름
+  roomName: ${q(cfg.roomName)},
+
+  // 호출 채널 코드: 학생용 화면과 수신 화면이 같은 코드를 써야 연결됩니다.
+  channel: ${q(cfg.channel)},
+
+  // 용건 버튼
+  purposes: [${cfg.purposes.map(q).join(", ")}],
+
+  // 배치표: "이름|담당 업무", 빈자리는 "", 표지는 "#출입문"
+  layout: [
+${rows}
+  ]
+};
+`;
+}
+
+function update() {
+  const txt = buildConfigJs();
+  if (document.activeElement !== $("out")) $("out").value = txt;
   const base = location.href.replace(/setup\.html.*$/, "");
   const ch = encodeURIComponent(cfg.channel);
   $("links").innerHTML =
     `학생용(문 앞 태블릿)<a href="${base}kiosk.html?ch=${ch}">${base}kiosk.html?ch=${ch}</a>` +
     `교무실 수신 화면<a href="${base}receiver.html?ch=${ch}">${base}receiver.html?ch=${ch}</a>`;
 }
+
+// ---- 글상자 → 배치표 ----
+$("applyBtn").onclick = () => {
+  try {
+    const w = {};
+    new Function("window", $("out").value)(w);
+    const c = w.DEFAULT_CONFIG;
+    if (!c || !Array.isArray(c.layout) || !c.layout.length || !c.layout.every(Array.isArray))
+      throw new Error("layout(배치표) 형식을 찾지 못했어요");
+    cfg = Object.assign({ purposes: DEFAULT_PURPOSES }, c);
+    fillForm(); update();
+    flash("applyMsg", "✓ 위 배치표에 반영했어요");
+  } catch (e) {
+    flash("applyMsg", "글상자 내용에 오류가 있어요: " + e.message, false);
+  }
+};
 
 ["roomName", "channel", "purposes"].forEach(id => $(id).oninput = update);
 $("genBtn").onclick = () => {
@@ -146,17 +265,67 @@ $("resizeBtn").onclick = () => {
 };
 $("saveBtn").onclick = () => {
   readForm(); SC.saveConfig({ roomName: cfg.roomName, channel: cfg.channel, purposes: cfg.purposes, layout: cfg.layout });
-  $("savedMsg").textContent = "✓ 이 기기에 저장했어요";
-  setTimeout(() => $("savedMsg").textContent = "", 2500);
+  flash("savedMsg", "✓ 이 기기에 저장했어요");
 };
 $("resetBtn").onclick = () => {
   SC.resetConfig(); cfg = SC.loadConfig(); fillForm(); update();
-  $("savedMsg").textContent = "✓ config.js 설정으로 돌아갔어요";
+  flash("savedMsg", "✓ config.js 설정으로 돌아갔어요");
 };
 $("copyBtn").onclick = async () => {
-  try { await navigator.clipboard.writeText($("out").value); $("copyBtn").textContent = "✓ 복사했어요"; }
-  catch (e) { $("out").select(); document.execCommand("copy"); $("copyBtn").textContent = "✓ 복사했어요"; }
-  setTimeout(() => $("copyBtn").textContent = "config.js 내용 복사", 2000);
+  try { await navigator.clipboard.writeText($("out").value); }
+  catch (e) { $("out").select(); document.execCommand("copy"); }
+  flash("applyMsg", "✓ 복사했어요");
+};
+
+// ---- GitHub 저장 ----
+(function initGh() {
+  // gus-wn.github.io/call_teacher/ → 계정 gus-wn, 저장소 call_teacher
+  const host = location.hostname.match(/^([^.]+)\.github\.io$/);
+  $("ghOwner").value = host ? host[1] : "gus-wn";
+  $("ghRepo").value = (host && location.pathname.split("/")[1]) || "call_teacher";
+  showTokenState();
+})();
+function showTokenState() {
+  const has = !!load(TOKEN_KEY);
+  $("tokenState").className = "tag " + (has ? "ok" : "");
+  $("tokenState").textContent = has ? "저장됨" : "없음";
+  $("token").placeholder = has ? "저장된 토큰 사용 중 (바꾸려면 새로 붙여넣기)" : "처음 한 번만 붙여넣기 (이 기기에만 보관)";
+}
+$("tokenClearBtn").onclick = () => { store(TOKEN_KEY, null); $("token").value = ""; showTokenState(); flash("ghMsg", "토큰을 지웠어요"); };
+
+function toBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+
+$("ghSaveBtn").onclick = async () => {
+  const typed = $("token").value.trim();
+  if (typed) { store(TOKEN_KEY, typed); $("token").value = ""; showTokenState(); }
+  const token = load(TOKEN_KEY);
+  if (!token) { flash("ghMsg", "먼저 GitHub 토큰을 붙여넣어 주세요", false); return; }
+  const owner = $("ghOwner").value.trim(), repo = $("ghRepo").value.trim();
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/config.js`;
+  const headers = { Authorization: "Bearer " + token, Accept: "application/vnd.github+json" };
+  const btn = $("ghSaveBtn"); btn.disabled = true; flash("ghMsg", "저장 중…");
+  try {
+    const cur = await fetch(url, { headers, cache: "no-store" });
+    if (cur.status === 401) throw new Error("토큰이 올바르지 않거나 만료됐어요");
+    if (cur.status === 404) throw new Error("저장소나 config.js를 찾지 못했어요 (계정·저장소 이름, 토큰 권한 확인)");
+    if (!cur.ok) throw new Error("GitHub 응답 오류 " + cur.status);
+    const { sha } = await cur.json();
+    const res = await fetch(url, {
+      method: "PUT", headers,
+      body: JSON.stringify({ message: "배치표 설정 페이지에서 config.js 수정", content: toBase64(buildConfigJs()), sha })
+    });
+    if (res.status === 403 || res.status === 404) throw new Error("토큰에 Contents 쓰기 권한이 없어요");
+    if (res.status === 409) throw new Error("다른 곳에서 먼저 수정됐어요. 새로고침 후 다시 시도해 주세요");
+    if (!res.ok) throw new Error("저장 실패 " + res.status);
+    SC.resetConfig(); // 이 기기도 GitHub 설정을 따르도록
+    flash("ghMsg", "✓ GitHub에 저장했어요. 1~2분 뒤 모든 화면에 반영돼요");
+  } catch (e) {
+    flash("ghMsg", e.message, false);
+  } finally { btn.disabled = false; }
 };
 
 fillForm(); update();
