@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>교무실 알림 수신</title>
-<link rel="stylesheet" href="style.css?v=202610291615">
+<link rel="stylesheet" href="style.css?v=202610291616">
 <style>
   .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
   .bar select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
@@ -97,7 +97,7 @@
 </div>
 
 <script>document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');</script>
-<script src="common.js?v=202610291615"></script>
+<script src="common.js?v=202610291616"></script>
 <script>
 const SC = window.StaffCall;
 const cfg = SC.loadConfig();
@@ -122,7 +122,14 @@ const VOICE_DEFAULT = { voice: "", rate: 0.95, pitch: 1, volume: 1, template: DE
 let vp = Object.assign({}, VOICE_DEFAULT, SC.voicePref());
 const $v = id => document.getElementById(id);
 
+// 학번 읽기: 20801 → "2학년 8반 1번" (앞 1자리 학년, 가운데 2자리 반, 끝 2자리 번호)
+function readStudent(s) {
+  return String(s).replace(/(^|[^0-9])([1-6])(\d{2})(\d{2})(?![0-9])/g,
+    (m, pre, g, c, n) => `${pre}${g}학년 ${+c}반 ${+n}번 `).replace(/\s+/g, " ").trim();
+}
+
 function sentence(c, again) {
+  c = Object.assign({}, c, { student: readStudent(c.student) });
   const tpl = (vp.template || DEFAULT_TPL);
   const purpose = c.purpose ? `용건은 ${c.purpose}입니다.` : "";
   return (again ? "다시 알려드립니다. " : "") +
