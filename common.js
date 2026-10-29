@@ -75,12 +75,25 @@
       o.start(now + t); o.stop(now + t + 1.2);
     });
   }
-  function speak(text) {
+  // 목소리 설정 (이 기기에 저장): { voice: 목소리 이름, rate: 빠르기, pitch: 높낮이, volume: 크기 }
+  const VOICE_PREF_KEY = "staffroom_call_voice_pref";
+  function voicePref() {
+    try { return Object.assign({ voice: "", rate: 0.95, pitch: 1, volume: 1 }, JSON.parse(safeGet(VOICE_PREF_KEY) || "{}")); }
+    catch (e) { return { voice: "", rate: 0.95, pitch: 1, volume: 1 }; }
+  }
+  function setVoicePref(p) { safeSet(VOICE_PREF_KEY, JSON.stringify(p)); }
+  function koreanVoices() {
+    if (!("speechSynthesis" in window)) return [];
+    return speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith("ko"));
+  }
+  function speak(text, pref) {
     if (!("speechSynthesis" in window)) return;
+    const p = pref || voicePref();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = "ko-KR"; u.rate = 0.95;
-    const ko = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith("ko"));
-    if (ko) u.voice = ko;
+    u.lang = "ko-KR"; u.rate = +p.rate; u.pitch = +p.pitch; u.volume = +p.volume;
+    const list = koreanVoices();
+    u.voice = list.find(v => v.name === p.voice) || list[0] || null;
+    speechSynthesis.cancel();
     speechSynthesis.speak(u);
   }
 
@@ -101,5 +114,5 @@
     return [...new Set(cfg.layout.flat().map(parseSeat).filter(s => s.kind === "teacher").map(s => s.name))];
   }
 
-  window.StaffCall = { parseSeat, teacherNames, loadConfig, saveConfig, resetConfig, send, listen, unlockAudio, chime, speak, esc };
+  window.StaffCall = { parseSeat, teacherNames, loadConfig, saveConfig, resetConfig, send, listen, unlockAudio, chime, speak, esc, voicePref, setVoicePref, koreanVoices };
 })();
