@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>선생님 호출</title>
-<link rel="stylesheet" href="style.css?v=202610291604">
+<link rel="stylesheet" href="style.css?v=202610291608">
 <style>
   .hint { text-align: center; margin: 4px 0 18px; font-size: 18px; color: var(--muted); }
   .door { text-align: center; margin-top: 10px; font-size: 13px; color: var(--muted); }
@@ -65,11 +65,21 @@ window.addEventListener("error", e => {
     `<p style="color:#b8566b;text-align:center">화면을 그리는 중 오류가 났어요. 새로고침(Ctrl+F5) 해 보세요.<br><small>${String(e.message).replace(/</g,"&lt;")}</small></p>`);
 });
 </script>
-<script src="config.js?v=202610291604"></script>
-<script src="common.js?v=202610291604"></script>
+<script src="config.js?v=202610291608"></script>
+<script src="common.js?v=202610291608"></script>
 <script>
 const SC = window.StaffCall;
+// common.js가 예전 버전이어도 동작하도록 자리 해석 기능을 여기에도 둠
+if (!SC.parseSeat) SC.parseSeat = raw => {
+  const v = String(raw || "").trim();
+  if (!v) return { kind: "empty" };
+  if (v.startsWith("#")) return { kind: "label", text: v.slice(1) };
+  const i = v.indexOf("|");
+  return i < 0 ? { kind: "teacher", name: v, role: "" }
+               : { kind: "teacher", name: v.slice(0, i).trim(), role: v.slice(i + 1).trim() };
+};
 const cfg = SC.loadConfig();
+if (!Array.isArray(cfg.layout) || !cfg.layout.length) cfg.layout = window.DEFAULT_CONFIG.layout;
 const PURPOSES = cfg.purposes || ["과제 제출", "질문", "상담", "심부름", "기타"];
 let current = null, purpose = "", pendingId = null, resetTimer = null;
 
@@ -155,14 +165,16 @@ function showDone(icon, title, text) {
 }
 
 // 선생님이 '확인'을 누르면 화면에 표시
-SC.listen(cfg, msg => {
-  if (msg.type === "ack" && msg.id && msg.id === pendingId) {
-    const txt = msg.reply === "wait" ? "선생님이 확인하셨어요. 조금만 더 기다려 주세요!"
-              : msg.reply === "later" ? "지금은 만나기 어려우세요. 다음에 다시 와 주세요."
-              : "선생님이 확인하셨어요. 곧 나오실 거예요!";
-    showDone(msg.reply === "later" ? "🙏" : "✅", "선생님이 확인했어요", txt);
-  }
-});
+try {
+  SC.listen(cfg, msg => {
+    if (msg.type === "ack" && msg.id && msg.id === pendingId) {
+      const txt = msg.reply === "wait" ? "선생님이 확인하셨어요. 조금만 더 기다려 주세요!"
+                : msg.reply === "later" ? "지금은 만나기 어려우세요. 다음에 다시 와 주세요."
+                : "선생님이 확인하셨어요. 곧 나오실 거예요!";
+      showDone(msg.reply === "later" ? "🙏" : "✅", "선생님이 확인했어요", txt);
+    }
+  });
+} catch (e) { /* 답장 수신이 안 되어도 호출은 가능 */ }
 
 // 시계
 function tick() {
